@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import act, person %}
+{% block title %}{{ view.user.name }} · {{ APP_NAME }}{% endblock %}
+{% block content %}
+{% set u = view.user %}
+<div class="two">
+
+  <section>
+    <div class="card peach">
+      <div class="tape"></div>
+      <div class="row" style="margin-top:6px">
+        <div class="av lg {{ u.username|av_class }}">{{ u.avatar }}</div>
+        <div><h1 class="h" style="margin:0">{{ u.name }}</h1><div class="meta">@{{ u.username }} · {{ u.programme }} · Year {{ u.year }}</div></div>
+      </div>
+      {% if u.bio %}<p>{{ u.bio }}</p>{% endif %}
+      <div>{% for s in u.skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
+      <div class="px" style="margin-top:8px">{{ view.pals }} PALS</div>
+
+      <div class="actions">
+        {% if view.relationship == 'self' %}
+          <a class="btn" href="{{ url_for('edit_profile') }}">Edit Yearbook</a>
+        {% elif view.relationship == 'pals' %}
+          {{ act('Remove pal', 'remove_pal', u.username, request.path, 'plain') }}
+        {% elif view.relationship == 'request_sent' %}
+          {{ act('Cancel request', 'cancel_request', u.username, request.path, 'plain') }}
+        {% elif view.relationship == 'request_received' %}
+          {{ act('Pleased to meet you', 'accept_request', u.username, request.path, 'mint') }}
+          {{ act('Maybe later', 'reject_request', u.username, request.path, 'plain') }}
+        {% else %}
+          {{ act('Send a high-five', 'send_request', u.username, request.path) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {% if view.relationship != 'self' %}
+    <div class="card butter">
+      <h2 class="h">How you know {{ u.name.split()[0] }}</h2>
+      {% if view.degree == 'Not connected' %}
+        <p>You are not connected yet. Send a high-five to start a chain!</p>
+      {% else %}
+        <p><strong>{{ view.degree }}-degree pal</strong></p>
+        {% if view.chain and view.chain|length > 1 %}
+        <div>
+          {% for name in view.chain %}
+            <a class="bub" href="{{ url_for('profile', username=name) }}">{{ 'You' if loop.first else get_user(name).name }}</a>{% if not loop.last %}<span class="arrow">→</span>{% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if view.mutuals %}
+        <p class="meta" style="margin-top:12px">Mutual pals:</p>
+        <div>{% for m in view.mutuals %}<a class="pill" href="{{ url_for('profile', username=m) }}">{{ get_user(m).name }}</a>{% endfor %}</div>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2 class="h big" style="font-size:36px">Pinned by {{ u.name.split()[0] }}</h2>
+    {% for p in view.posts %}{% include "_post.html" %}{% else %}
+    <div class="card"><p class="empty">Nothing pinned yet.</p></div>
+    {% endfor %}
+  </section>
+
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import act, person %}
+{% block title %}My Pals · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="two">
+
+  <section>
+    <div class="card mint">
+      <h2 class="h">Waiting for your answer</h2>
+      {% for name in incoming %}
+        {% call person(name) %}
+          {{ act('Pleased to meet you', 'accept_request', name, '/pals', 'sm mint') }}
+          {{ act('Maybe later', 'reject_request', name, '/pals', 'sm plain') }}
+        {% endcall %}
+      {% else %}
+        <p class="meta">No requests right now.</p>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h2 class="h">High-fives you sent</h2>
+      {% for name in sent %}
+        {% call person(name) %}
+          {{ act('Cancel', 'cancel_request', name, '/pals', 'sm plain') }}
+        {% endcall %}
+      {% else %}
+        <p class="meta">Nothing waiting.</p>
+      {% endfor %}
+    </div>
+
+    <div class="card lilac">
+      <h2 class="h">Introductions</h2>
+      {% for name, mutual, score in suggestions %}
+        {% call person(name, mutual ~ (' mutual pal' if mutual == 1 else ' mutual pals')) %}
+          {{ act('Send a high-five', 'send_request', name, '/pals', 'sm') }}
+        {% endcall %}
+      {% else %}
+        <p class="meta">No introductions yet. Make a few pals and they will appear here.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2 class="h">My Pals ({{ pals|length }})</h2>
+      {% for name in pals %}
+        {% call person(name) %}
+          {{ act('Remove', 'remove_pal', name, '/pals', 'sm plain') }}
+        {% endcall %}
+      {% else %}
+        <p class="empty">No pals yet.</p>
+        <p class="meta" style="text-align:center"><a href="{{ url_for('search') }}">Search for someone</a> and send a high-five!</p>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}

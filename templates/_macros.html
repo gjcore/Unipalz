@@ -1,0 +1,22 @@
+{# small reusable pieces used by several pages #}
+
+{# a button that POSTs to a route, then returns to the page it was on #}
+{% macro act(label, endpoint, username, nxt, cls='') -%}
+<form class="inline" method="post" action="{{ url_for(endpoint, username=username) }}">
+  <input type="hidden" name="next" value="{{ nxt }}">
+  <button class="btn {{ cls }}" type="submit">{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{# one person in a list: avatar, name, small text, and optional buttons #}
+{% macro person(username, sub='', stack=False) -%}
+{% set u = get_user(username) %}
+<div class="list-item{{ ' stack' if stack }}">
+  <a class="av {{ username|av_class }}" href="{{ url_for('profile', username=username) }}" aria-label="{{ u.name }}">{{ u.avatar }}</a>
+  <div class="grow">
+    <a href="{{ url_for('profile', username=username) }}"><strong>{{ u.name }}</strong></a>
+    <div class="meta">@{{ username }}{% if sub %} · {{ sub }}{% endif %}</div>
+  </div>
+  {% if caller %}<div class="actions" style="margin:0">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}

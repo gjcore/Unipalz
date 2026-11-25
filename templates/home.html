@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import act, person %}
+{% block title %}The Board · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="grid">
+
+  <aside>
+    <div class="card peach">
+      <div class="tape"></div>
+      <div class="row" style="margin-top:6px">
+        <div class="av lg {{ me.username|av_class }}">{{ me.avatar }}</div>
+        <div><strong>{{ me.name }}</strong><div class="meta">@{{ me.username }}</div><div class="meta">{{ me.programme }} · Year {{ me.year }}</div></div>
+      </div>
+      {% if me.bio %}<p>{{ me.bio }}</p>{% endif %}
+      <div>{% for s in me.skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
+      <div class="row between" style="margin-top:10px">
+        <div class="px">{{ pal_count }}<br>PALS</div>
+        <div class="px">{{ pending_count }}<br>PENDING</div>
+      </div>
+      <div class="actions"><a class="btn sm plain" href="{{ url_for('edit_profile') }}">Edit Yearbook</a></div>
+    </div>
+  </aside>
+
+  <section>
+    <h1 class="h big">The Bulletin Board</h1>
+    <form class="card mint" method="post" action="{{ url_for('create_post') }}">
+      <label for="text" style="margin-top:0">Pin a project or idea</label>
+      <textarea id="text" name="text" maxlength="500" required placeholder="What are you building?"></textarea>
+      <input type="hidden" name="next" value="/">
+      <div class="actions"><button class="btn" type="submit">Pin it</button></div>
+    </form>
+
+    {% for p in feed %}{% include "_post.html" %}{% else %}
+    <div class="card"><p class="empty">Nothing pinned yet. Be the first!</p>
+      <p class="meta" style="text-align:center">Posts from your pals show up here. <a href="{{ url_for('search') }}">Find some pals</a>.</p></div>
+    {% endfor %}
+  </section>
+
+  <aside>
+    <div class="card lilac">
+      <h2 class="h">Introductions</h2>
+      {% for name, mutual, score in suggestions %}
+        {% call person(name, mutual ~ (' mutual pal' if mutual == 1 else ' mutual pals'), stack=True) %}
+          {{ act('Send a high-five', 'send_request', name, '/', 'sm') }}
+        {% endcall %}
+      {% else %}
+        <p class="meta">No introductions yet. Make a few pals and they will appear here.</p>
+      {% endfor %}
+    </div>
+  </aside>
+
+</div>
+{% endblock %}

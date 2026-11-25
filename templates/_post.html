@@ -1,0 +1,17 @@
+{# one post card. Needs a variable called p (a Post) #}
+{% set author = get_user(p.author) %}
+<article class="card post">
+  <div class="row between">
+    <a class="row" href="{{ url_for('profile', username=p.author) }}" style="text-decoration:none">
+      <div class="av {{ p.author|av_class }}">{{ author.avatar }}</div>
+      <div><strong>{{ author.name }}</strong><div class="meta">@{{ p.author }} · {{ p.created_at|timeago }}</div></div>
+    </a>
+    {% if p.author == me.username %}
+    <form class="inline" method="post" action="{{ url_for('delete_post', post_id=p.id) }}">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button class="btn sm plain" type="submit">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+  <p>{{ p.text }}</p>
+</article>

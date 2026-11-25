@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import person %}
+{% block title %}Search · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="auth card">
+  <h1 class="h big">Find pals</h1>
+  <form method="get" action="{{ url_for('search') }}" class="suggest">
+    <label for="q" style="margin-top:0">Search by name or username</label>
+    <input id="q" name="q" type="search" value="{{ q }}" autocomplete="off" autofocus
+           aria-controls="suggestions" placeholder="Start typing, e.g. ra">
+    <ul id="suggestions" hidden></ul>
+    <div class="actions"><button class="btn" type="submit">Search</button></div>
+  </form>
+</div>
+
+{% if q %}
+<div class="auth card">
+  <h2 class="h">Results for "{{ q }}"</h2>
+  {% for u in results %}
+    {% call person(u.username, u.programme) %}
+      <a class="btn sm plain" href="{{ url_for('profile', username=u.username) }}">View Yearbook</a>
+    {% endcall %}
+  {% else %}
+    <p class="empty">No one found.</p>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='search.js') }}"></script>{% endblock %}

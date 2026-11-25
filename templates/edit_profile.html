@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Edit Yearbook · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="auth card">
+  <h1 class="h big">Edit your Yearbook</h1>
+  <form method="post">
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" value="{{ me.name }}" required>
+    <label for="programme">Programme</label>
+    <input id="programme" name="programme" type="text" value="{{ me.programme }}">
+    <label for="year">Year</label>
+    <select id="year" name="year">
+      {% for y in [1, 2, 3, 4] %}<option value="{{ y }}" {{ 'selected' if me.year == y }}>Year {{ y }}</option>{% endfor %}
+    </select>
+    <label for="bio">Short bio</label>
+    <textarea id="bio" name="bio" rows="3">{{ me.bio }}</textarea>
+    <label for="skills">Skills (separate with commas)</label>
+    <input id="skills" name="skills" type="text" value="{{ me.skills|join(', ') }}">
+    <fieldset class="avatars">
+      <legend>Your avatar</legend>
+      {% for a in avatars %}
+      <label class="avpick"><input type="radio" name="avatar" value="{{ a }}" {{ 'checked' if me.avatar == a }}><span>{{ a }}</span></label>
+      {% endfor %}
+    </fieldset>
+    <div class="actions">
+      <button class="btn" type="submit">Save</button>
+      <a class="btn plain" href="{{ url_for('profile', username=me.username) }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

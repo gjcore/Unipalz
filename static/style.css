@@ -1,0 +1,87 @@
+/* Unipalz - playful notebook + arcade stickers */
+:root{--paper:#FFF8E7;--ink:#2B2D42;--peach:#FFB5A7;--mint:#B5EAD7;--butter:#FFE66D;--lilac:#CDB4DB;--coral:#FF6B6B;--coral-dark:#C0392B;--muted:#4A4E69;--line:#E3D9BD}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Fredoka',sans-serif;color:var(--ink);min-height:100vh;background-color:var(--paper);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--line) 31px,var(--line) 32px)}
+a{color:var(--ink)} a:hover{color:var(--coral-dark)}
+:focus-visible{outline:3px solid var(--coral-dark);outline-offset:2px}
+
+/* navbar */
+.nav{display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding:14px 32px;background:var(--butter);border-bottom:3px solid var(--ink)}
+.logo{font-family:'Press Start 2P',monospace;font-size:20px;display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-b{color:var(--coral-dark)}
+.tag{font-family:'Caveat',cursive;font-size:20px}
+.spacer{flex:1}
+.nav a.l{font-weight:600;text-decoration:none;padding:8px 14px;border:3px solid transparent;border-radius:12px}
+.nav a.on{background:var(--paper);border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.badge{display:inline-block;min-width:22px;padding:1px 6px;margin-left:4px;text-align:center;font-size:12px;background:var(--coral);border:2px solid var(--ink);border-radius:999px}
+
+/* page layout */
+.page{max-width:1280px;margin:0 auto;padding:32px}
+.grid{display:grid;grid-template-columns:260px minmax(0,1fr) 290px;gap:28px;align-items:start}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.auth{max-width:520px;margin:10px auto}
+@media (max-width:980px){.grid,.two{grid-template-columns:1fr}.page{padding:20px 16px}.nav{padding:12px 16px}}
+
+/* cards */
+.card{background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:6px 6px 0 var(--ink);padding:16px 18px;margin-bottom:24px;position:relative}
+.card.peach{background:var(--peach)} .card.mint{background:var(--mint)} .card.lilac{background:var(--lilac)} .card.butter{background:var(--butter)}
+.tape{position:absolute;top:-14px;left:50%;width:70px;height:24px;margin-left:-35px;background:var(--mint);border:2px solid var(--ink);opacity:.9;transform:rotate(-4deg)}
+.h{font-family:'Caveat',cursive;font-size:32px;margin:0 0 10px;font-weight:700}
+.h.big{font-size:44px}
+.px{font-family:'Press Start 2P',monospace;font-size:10px;line-height:1.6}
+.meta{font-size:13px;color:var(--muted)}
+.card.peach .meta,.card.lilac .meta,.card.butter .meta,.card.mint .meta{color:var(--ink)}
+.row{display:flex;gap:12px;align-items:center}
+.row.between{justify-content:space-between}
+.actions{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+.empty{font-family:'Caveat',cursive;font-size:26px;text-align:center;margin:10px 0}
+
+/* buttons */
+.btn{display:inline-block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:var(--ink);text-decoration:none;background:var(--coral);border:3px solid var(--ink);border-radius:12px;box-shadow:4px 4px 0 var(--ink);padding:10px 16px;min-height:44px;cursor:pointer}
+.btn:hover{color:var(--ink)}
+.btn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+.btn.sm{font-size:13px;padding:8px 10px;min-height:40px;box-shadow:3px 3px 0 var(--ink)}
+.btn.mint{background:var(--mint)} .btn.plain{background:#fff}
+form.inline{display:inline}
+
+/* avatars, skill stickers */
+.av{width:48px;height:48px;border-radius:50%;border:3px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none;background:var(--butter)}
+.av.lg{width:72px;height:72px;font-size:40px}
+.av-0{background:var(--butter)} .av-1{background:var(--lilac)} .av-2{background:var(--peach)} .av-3{background:var(--mint)} .av-4{background:#FFD6A5}
+.pill{display:inline-block;border:2px solid var(--ink);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:500;margin:0 4px 6px 0;background:#fff}
+.pill:nth-child(3n+2){background:var(--lilac)} .pill:nth-child(3n){background:var(--mint)}
+
+/* forms */
+label{display:block;font-weight:600;margin:14px 0 6px}
+input[type=text],input[type=password],input[type=search],select,textarea{width:100%;border:3px solid var(--ink);border-radius:12px;padding:10px;font:inherit;background:var(--paper);color:var(--ink)}
+textarea{resize:vertical;min-height:80px}
+fieldset.avatars{border:none;padding:0;margin:14px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+fieldset.avatars legend{font-weight:600;margin-bottom:6px;padding:0}
+.avpick{position:relative;margin:0}
+.avpick input{position:absolute;opacity:0;width:0;height:0}
+.avpick span{display:flex;width:48px;height:48px;align-items:center;justify-content:center;font-size:26px;border:3px solid var(--ink);border-radius:50%;background:#fff;cursor:pointer}
+.avpick input:checked+span{background:var(--butter);box-shadow:3px 3px 0 var(--ink)}
+.avpick input:focus-visible+span{outline:3px solid var(--coral-dark);outline-offset:2px}
+
+/* flash messages */
+.flash{max-width:1280px;margin:16px auto 0;padding:0 32px}
+.flash div{border:3px solid var(--ink);border-radius:12px;padding:10px 14px;font-weight:500;box-shadow:4px 4px 0 var(--ink);margin-bottom:8px}
+.flash .ok{background:var(--mint)} .flash .error{background:var(--peach)}
+
+/* chain bubbles, posts, typeahead */
+.bub{display:inline-block;border:3px solid var(--ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:14px;background:var(--peach);text-decoration:none}
+.bub:nth-child(4n+3){background:var(--mint)} .bub:nth-child(4n+5){background:var(--lilac)}
+.arrow{font-weight:700;margin:0 4px}
+.post p{margin:12px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.list-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:2px dashed var(--ink)}
+.list-item:last-child{border-bottom:none}
+.list-item .grow{flex:1;min-width:0}
+.suggest{position:relative}
+#suggestions{list-style:none;margin:6px 0 0;padding:0;border:3px solid var(--ink);border-radius:12px;background:#fff;box-shadow:4px 4px 0 var(--ink);overflow:hidden}
+#suggestions[hidden]{display:none}
+#suggestions a{display:flex;gap:10px;align-items:center;padding:8px 12px;text-decoration:none}
+#suggestions a:hover,#suggestions a:focus{background:var(--butter)}
+/* people lists */
+.list-item.stack{flex-wrap:wrap}
+.list-item.stack .actions{width:100%;margin:6px 0 0}
+.av{text-decoration:none}

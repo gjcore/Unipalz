@@ -1,0 +1,10 @@
+# Python and environment
+venv/
+__pycache__/
+*.pyc
+
+# Databases (they hold user data, so they stay on your laptop)
+*.db
+
+# Editor files
+.vscode/
