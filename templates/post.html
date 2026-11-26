@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Post · {{ APP_NAME }}{% endblock %}
+
+{# one comment, then (calling itself) all of its replies: this walks the TREE #}
+{% macro comment_tree(c, post_id) %}
+{% set a = get_user(c.author) %}
+<div class="comment" id="comment-{{ c.id }}">
+  <div class="row between">
+    <a class="row" href="{{ url_for('profile', username=c.author) }}" style="text-decoration:none">
+      <div class="av {{ c.author|av_class }}" style="width:38px;height:38px;font-size:20px">{{ a.avatar }}</div>
+      <div><strong>{{ a.name }}</strong><div class="meta">@{{ c.author }} · {{ c.created_at|timeago }}</div></div>
+    </a>
+    {% if c.author == me.username %}
+    <form class="inline" method="post" action="{{ url_for('delete_comment', comment_id=c.id) }}">
+      <input type="hidden" name="next" value="{{ url_for('post_page', post_id=post_id) }}">
+      <button class="btn sm plain" type="submit">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+  <p>{{ c.text }}</p>
+  <details class="reply">
+    <summary>Reply</summary>
+    <form method="post" action="{{ url_for('add_comment', post_id=post_id) }}">
+      <input type="hidden" name="parent_id" value="{{ c.id }}">
+      <label for="reply-{{ c.id }}">Your reply to {{ a.name.split()[0] }}</label>
+      <textarea id="reply-{{ c.id }}" name="text" maxlength="300" required rows="2"></textarea>
+      <div class="actions"><button class="btn sm" type="submit">Reply</button></div>
+    </form>
+  </details>
+  {% if c.replies %}
+  <div class="indent">{% for r in c.replies %}{{ comment_tree(r, post_id) }}{% endfor %}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="auth">
+  {% set p = view.post %}
+  {% include "_post.html" %}
+
+  <div class="card">
+    <h2 class="h">Comments ({{ view.comment_count }})</h2>
+    <form method="post" action="{{ url_for('add_comment', post_id=p.id) }}">
+      <label for="comment-text" style="margin-top:0">Add a comment</label>
+      <textarea id="comment-text" name="text" maxlength="300" required rows="2" placeholder="Say something nice..."></textarea>
+      <div class="actions"><button class="btn" type="submit">Comment</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    {% for c in view.comments %}{{ comment_tree(c, p.id) }}{% else %}
+    <p class="empty">No comments yet. Say something!</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

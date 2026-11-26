@@ -1,5 +1,5 @@
 """
-db.py  -  Step 9a: The storeroom (SQLite)
+db.py  -  The storeroom (SQLite)
 
 This file ONLY saves and loads data. It does no graph thinking: no BFS, no
 suggestions, no feed. Those all happen in memory, in the core/ files.
@@ -8,7 +8,9 @@ Tables:
   users        one row per student
   connections  one row per accepted friendship (stored once, a < b)
   requests     one row per pending request (id keeps the queue order)
-  posts        one row per post
+  posts        one row per post (image = file name of an uploaded photo)
+  likes        one row per (post, user) like
+  comments     one row per comment or reply (parent_id = the comment replied to)
 """
 
 import json
@@ -16,6 +18,7 @@ import sqlite3
 
 from core.users import User
 from core.posts import Post
+from core.interactions import Comment
 
 
 SCHEMA = """
@@ -45,6 +48,20 @@ CREATE TABLE IF NOT EXISTS posts (
     id         INTEGER PRIMARY KEY,
     author     TEXT NOT NULL,
     content    TEXT NOT NULL,
+    created_at REAL,
+    image      TEXT
+);
+CREATE TABLE IF NOT EXISTS likes (
+    post_id  INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    PRIMARY KEY (post_id, username)
+);
+CREATE TABLE IF NOT EXISTS comments (
+    id         INTEGER PRIMARY KEY,
+    post_id    INTEGER NOT NULL,
+    author     TEXT NOT NULL,
+    text       TEXT NOT NULL,
+    parent_id  INTEGER,
     created_at REAL
 );
 """
@@ -57,19 +74,28 @@ class Database:
         conn = sqlite3.connect(self.path)
         try:
             conn.executescript(SCHEMA)      # create the tables if they are missing
+            # a database made by an older version has no 'image' column: add it
+            columns = [row[1] for row in conn.execute("PRAGMA table_info(posts)")]
+            if "image" not in columns:
+                conn.execute("ALTER TABLE posts ADD COLUMN image TEXT")
             conn.commit()
         finally:
             conn.close()
 
-    # ---------- two tiny helpers: run a command / ask a question ----------
+    # ---------- tiny helpers: run commands / ask a question ----------
 
-    def _run(self, sql, params=()):
+    def _run_many(self, commands):
+        """Run several commands together: all of them happen, or none."""
         conn = sqlite3.connect(self.path)
         try:
-            conn.execute(sql, params)
+            for sql, params in commands:
+                conn.execute(sql, params)
             conn.commit()
         finally:
             conn.close()
+
+    def _run(self, sql, params=()):
+        self._run_many([(sql, params)])
 
     def _query(self, sql, params=()):
         conn = sqlite3.connect(self.path)
@@ -109,17 +135,38 @@ class Database:
                   (sender, receiver))
 
     def add_post(self, post):
-        self._run("INSERT INTO posts VALUES (?,?,?,?)",
-                  (post.id, post.author, post.text, post.created_at))
+        self._run("INSERT INTO posts (id, author, content, created_at, image) "
+                  "VALUES (?,?,?,?,?)",
+                  (post.id, post.author, post.text, post.created_at, post.image))
 
     def delete_post(self, post_id):
-        self._run("DELETE FROM posts WHERE id=?", (post_id,))
+        """Delete the post together with its likes and comments."""
+        self._run_many([
+            ("DELETE FROM posts WHERE id=?", (post_id,)),
+            ("DELETE FROM likes WHERE post_id=?", (post_id,)),
+            ("DELETE FROM comments WHERE post_id=?", (post_id,)),
+        ])
+
+    def add_like(self, post_id, username):
+        self._run("INSERT OR IGNORE INTO likes VALUES (?,?)", (post_id, username))
+
+    def delete_like(self, post_id, username):
+        self._run("DELETE FROM likes WHERE post_id=? AND username=?",
+                  (post_id, username))
+
+    def add_comment(self, c):
+        self._run("INSERT INTO comments VALUES (?,?,?,?,?,?)",
+                  (c.id, c.post_id, c.author, c.text, c.parent_id, c.created_at))
+
+    def delete_comments(self, comment_ids):
+        self._run_many([("DELETE FROM comments WHERE id=?", (cid,))
+                        for cid in comment_ids])
 
     # ---------- loading (runs once, when the app starts) ----------
 
     def load_into(self, engine):
         """Read everything from the database and rebuild the in-memory
-        structures (hash table, graph, queues, post lists, trie)."""
+        structures (hash table, graph, queues, post lists, trie, likes, tree)."""
 
         # users -> hash table, graph nodes, trie
         for row in self._query("SELECT * FROM users"):
@@ -141,6 +188,19 @@ class Database:
             engine.requests.send_request(sender, receiver)
 
         # posts -> each author's list, in increasing id order
-        for post_id, author, content, created_at in self._query(
-                "SELECT id, author, content, created_at FROM posts ORDER BY id"):
-            engine.posts.restore_post(Post(post_id, author, content, created_at))
+        for post_id, author, content, created_at, image in self._query(
+                "SELECT id, author, content, created_at, image "
+                "FROM posts ORDER BY id"):
+            engine.posts.restore_post(Post(post_id, author, content,
+                                           created_at, image))
+
+        # likes -> one set per post
+        for post_id, username in self._query("SELECT post_id, username FROM likes"):
+            engine.interactions.restore_like(post_id, username)
+
+        # comments -> the tree (parents have smaller ids, so they come first)
+        for cid, post_id, author, text, parent_id, created_at in self._query(
+                "SELECT id, post_id, author, text, parent_id, created_at "
+                "FROM comments ORDER BY id"):
+            engine.interactions.restore_comment(
+                Comment(cid, post_id, author, text, parent_id, created_at))

@@ -23,9 +23,11 @@
 
   <section>
     <h1 class="h big">The Bulletin Board</h1>
-    <form class="card mint" method="post" action="{{ url_for('create_post') }}">
+    <form class="card mint" method="post" action="{{ url_for('create_post') }}" enctype="multipart/form-data">
       <label for="text" style="margin-top:0">Pin a project or idea</label>
-      <textarea id="text" name="text" maxlength="500" required placeholder="What are you building?"></textarea>
+      <textarea id="text" name="text" maxlength="500" placeholder="What are you building?"></textarea>
+      <label for="image">Add a photo (optional, up to 4 MB)</label>
+      <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
       <input type="hidden" name="next" value="/">
       <div class="actions"><button class="btn" type="submit">Pin it</button></div>
     </form>

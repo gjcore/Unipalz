@@ -1,5 +1,5 @@
 """
-persistent.py  -  Step 9b: An Engine that remembers
+persistent.py  -  An Engine that remembers
 
 PersistentEngine is the normal Engine plus ONE extra habit:
   after every change that worked, also write that change to SQLite.
@@ -83,8 +83,8 @@ class PersistentEngine(Engine):
 
     # ---------- posts ----------
 
-    def create_post(self, username, text):
-        ok, result = super().create_post(username, text)
+    def create_post(self, username, text, image=None):
+        ok, result = super().create_post(username, text, image)
         if ok:
             self.db.add_post(result)        # result is the new Post
         return ok, result
@@ -92,5 +92,30 @@ class PersistentEngine(Engine):
     def delete_post(self, username, post_id):
         ok, msg = super().delete_post(username, post_id)
         if ok:
-            self.db.delete_post(post_id)
+            self.db.delete_post(post_id)    # also removes its likes and comments
+        return ok, msg
+
+    # ---------- likes and comments ----------
+
+    def toggle_like(self, username, post_id):
+        ok, liked = super().toggle_like(username, post_id)
+        if ok:
+            user = self._norm(username)
+            if liked:
+                self.db.add_like(post_id, user)
+            else:
+                self.db.delete_like(post_id, user)
+        return ok, liked
+
+    def add_comment(self, username, post_id, text, parent_id=None):
+        ok, result = super().add_comment(username, post_id, text, parent_id)
+        if ok:
+            self.db.add_comment(result)     # result is the new Comment
+        return ok, result
+
+    def delete_comment(self, username, comment_id):
+        ids = self.interactions.subtree_ids(comment_id)   # the branch, before it is cut
+        ok, msg = super().delete_comment(username, comment_id)
+        if ok:
+            self.db.delete_comments(ids)
         return ok, msg

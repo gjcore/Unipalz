@@ -5,10 +5,11 @@ Flask is the WAITER: it takes a request from the browser, hands it to the
 Engine (the kitchen), and brings back an HTML page. It does no clever
 thinking itself: every route below is "ask the Engine, then show the answer".
 
-Run it with:   python app.py      then open   http://127.0.0.1:5000
+Run it with:   python app.py      then open   http://127.0.0.1:5001
 """
 
 import os
+import secrets
 import time
 from functools import wraps
 
@@ -28,8 +29,20 @@ app.secret_key = os.environ.get("UNIPALZ_SECRET", "dev-secret-change-me")
 # ONE engine for the whole site: it loads the database into memory right now
 engine = PersistentEngine(os.environ.get("UNIPALZ_DB", "unipalz.db"))
 
-# templates can call get_user("ravi") to fetch a profile
+# photos: uploaded pictures are saved here, and Flask serves them from /static
+UPLOAD_DIR = os.path.join(app.static_folder, "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024        # photos up to 4 MB
+
+# the first bytes of a real image file, per extension (so a renamed .txt is refused)
+IMAGE_SIGNATURES = {".png": b"\x89PNG", ".jpg": b"\xff\xd8\xff",
+                    ".jpeg": b"\xff\xd8\xff", ".gif": b"GIF8", ".webp": b"RIFF"}
+
+# templates can call these, e.g. get_user("ravi") or like_count(5)
 app.jinja_env.globals["get_user"] = engine.get_user
+app.jinja_env.globals["like_count"] = engine.like_count
+app.jinja_env.globals["has_liked"] = engine.has_liked
+app.jinja_env.globals["comment_count"] = engine.comment_count
 
 
 # ---------- helpers ----------
@@ -59,6 +72,30 @@ def redirect_back():
     if target.startswith("/") and not target.startswith("//"):
         return redirect(target)
     return redirect(url_for("home"))
+
+
+def save_image(file):
+    """Check an uploaded photo and save it under a random name.
+    Returns (file name, None) or (None, error message)."""
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in IMAGE_SIGNATURES:
+        return None, "Photos must be PNG, JPG, GIF or WEBP"
+    head = file.stream.read(12)
+    file.stream.seek(0)
+    if not head.startswith(IMAGE_SIGNATURES[ext]) or \
+            (ext == ".webp" and head[8:12] != b"WEBP"):
+        return None, "That file is not a real image"
+    name = secrets.token_hex(8) + ext          # random name: nobody can overwrite another file
+    file.save(os.path.join(UPLOAD_DIR, name))
+    return name, None
+
+
+def remove_image_file(name):
+    if name:
+        try:
+            os.remove(os.path.join(UPLOAD_DIR, name))
+        except OSError:
+            pass
 
 
 def parse_year(value):
@@ -163,17 +200,74 @@ def home():
 @app.route("/post", methods=["POST"])
 @login_required
 def create_post():
+    image = None
+    file = request.files.get("image")
+    if file and file.filename:                      # a photo was attached
+        image, error = save_image(file)
+        if error:
+            flash(error, "error")
+            return redirect_back()
     ok, result = engine.create_post(current_user().username,
-                                    request.form.get("text", ""))
+                                    request.form.get("text", ""), image)
     if not ok:
         flash(result, "error")          # result is the reason when it failed
+        remove_image_file(image)
     return redirect_back()
 
 
 @app.route("/post/<int:post_id>/delete", methods=["POST"])
 @login_required
 def delete_post(post_id):
+    post = engine.posts.get_post(post_id)
     ok, msg = engine.delete_post(current_user().username, post_id)
+    if ok and post.image:
+        remove_image_file(post.image)               # delete the photo file too
+    flash(msg, "ok" if ok else "error")
+    return redirect_back()
+
+
+@app.errorhandler(413)
+def photo_too_big(error):
+    flash("That photo is too big (4 MB at most)", "error")
+    return redirect(url_for("home"))
+
+
+# ---------- likes and comments ----------
+
+@app.route("/post/<int:post_id>/like", methods=["POST"])
+@login_required
+def like_post(post_id):
+    ok, result = engine.toggle_like(current_user().username, post_id)
+    if not ok:
+        flash(result, "error")
+    return redirect_back()
+
+
+@app.route("/post/<int:post_id>")
+@login_required
+def post_page(post_id):
+    view = engine.post_view(current_user().username, post_id)
+    if view is None:
+        abort(404)
+    return render_template("post.html", view=view)
+
+
+@app.route("/post/<int:post_id>/comment", methods=["POST"])
+@login_required
+def add_comment(post_id):
+    parent = request.form.get("parent_id", "")
+    parent_id = int(parent) if parent.isdigit() else None
+    ok, result = engine.add_comment(current_user().username, post_id,
+                                    request.form.get("text", ""), parent_id)
+    if not ok:
+        flash(result, "error")
+    return redirect(url_for("post_page", post_id=post_id))
+
+
+@app.route("/comment/<int:comment_id>/delete", methods=["POST"])
+@login_required
+def delete_comment(comment_id):
+    ok, msg = engine.delete_comment(current_user().username, comment_id)
     flash(msg, "ok" if ok else "error")
     return redirect_back()
 
@@ -278,6 +372,7 @@ def api_search():
     users = [engine.get_user(u) for u in engine.search(request.args.get("q", ""), 6)]
     return jsonify([{"username": u.username, "name": u.name,
                      "avatar": u.avatar, "programme": u.programme} for u in users])
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

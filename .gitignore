@@ -8,3 +8,5 @@ __pycache__/
 
 # Editor files
 .vscode/
+# Uploaded photos stay on your laptop
+static/uploads/

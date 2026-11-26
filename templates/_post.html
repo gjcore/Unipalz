@@ -1,6 +1,7 @@
 {# one post card. Needs a variable called p (a Post) #}
 {% set author = get_user(p.author) %}
-<article class="card post">
+{% set liked = has_liked(p.id, me.username) %}
+<article class="card post" id="post-{{ p.id }}">
   <div class="row between">
     <a class="row" href="{{ url_for('profile', username=p.author) }}" style="text-decoration:none">
       <div class="av {{ p.author|av_class }}">{{ author.avatar }}</div>
@@ -13,5 +14,13 @@
     </form>
     {% endif %}
   </div>
-  <p>{{ p.text }}</p>
+  {% if p.text %}<p>{{ p.text }}</p>{% endif %}
+  {% if p.image %}<img class="post-img" src="{{ url_for('static', filename='uploads/' ~ p.image) }}" alt="Photo posted by {{ author.name }}">{% endif %}
+  <div class="actions" style="margin-top:8px">
+    <form class="inline" method="post" action="{{ url_for('like_post', post_id=p.id) }}">
+      <input type="hidden" name="next" value="{{ request.path ~ '#post-' ~ p.id }}">
+      <button class="btn sm {{ '' if liked else 'plain' }}" type="submit" aria-pressed="{{ 'true' if liked else 'false' }}">{{ 'Liked' if liked else 'Like' }} · {{ like_count(p.id) }}</button>
+    </form>
+    <a class="btn sm plain" href="{{ url_for('post_page', post_id=p.id) }}">Comments · {{ comment_count(p.id) }}</a>
+  </div>
 </article>

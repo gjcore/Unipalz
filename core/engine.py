@@ -10,6 +10,7 @@ calls them in the right order:
     requests_q.py   -> pending requests               (queues)
     posts.py/feed.py-> posts + Bulletin Board         (heap)
     trie.py         -> search as you type             (trie)
+    interactions.py -> likes (sets) and comments (tree)
 
 The website (Flask) will only ever call methods of Engine. Engine knows
 nothing about HTML, Flask or the database, so a console menu could use
@@ -23,6 +24,7 @@ from core.users import UserRegistry
 from core.network import Graph
 from core.requests_q import RequestManager
 from core.posts import PostStore
+from core.interactions import Interactions
 from core.feed import build_feed
 from core.suggestions import people_you_may_know
 from core.trie import UserSearch
@@ -35,6 +37,7 @@ class Engine:
         self.graph = Graph()                         # adjacency lists
         self.requests = RequestManager(self.graph)   # queues of pending requests
         self.posts = PostStore()                     # each user's posts
+        self.interactions = Interactions()           # likes (sets) + comments (tree)
         self.search_index = UserSearch()             # trie
 
     @staticmethod
@@ -164,14 +167,17 @@ class Engine:
 
     # ================= posts and feed =================
 
-    def create_post(self, username, text):
+    def create_post(self, username, text, image=None):
         username = self._norm(username)
         if username not in self.users.users:
             return False, "User not found"
-        return self.posts.create_post(username, text)
+        return self.posts.create_post(username, text, image)
 
     def delete_post(self, username, post_id):
-        return self.posts.delete_post(self._norm(username), post_id)
+        ok, msg = self.posts.delete_post(self._norm(username), post_id)
+        if ok:
+            self.interactions.remove_post(post_id)     # its likes and comments go too
+        return ok, msg
 
     def feed(self, username, limit=20):
         """The Bulletin Board: posts from your pals, newest first."""
@@ -179,3 +185,43 @@ class Engine:
 
     def posts_of(self, username):
         return self.posts.posts_of(self._norm(username))
+
+    # ================= likes and comments =================
+
+    def toggle_like(self, username, post_id):
+        """Returns (True, liked_now) or (False, reason)."""
+        if self.posts.get_post(post_id) is None:
+            return False, "Post not found"
+        return True, self.interactions.toggle_like(post_id, self._norm(username))
+
+    def like_count(self, post_id):
+        return self.interactions.like_count(post_id)
+
+    def has_liked(self, post_id, username):
+        return self.interactions.has_liked(post_id, self._norm(username))
+
+    def comment_count(self, post_id):
+        return self.interactions.comment_count(post_id)
+
+    def add_comment(self, username, post_id, text, parent_id=None):
+        """Returns (True, the Comment) or (False, reason)."""
+        if self.posts.get_post(post_id) is None:
+            return False, "Post not found"
+        return self.interactions.add_comment(post_id, self._norm(username),
+                                             text, parent_id)
+
+    def delete_comment(self, username, comment_id):
+        return self.interactions.delete_comment(comment_id, self._norm(username))
+
+    def post_view(self, viewer, post_id):
+        """Everything the single-post page needs."""
+        post = self.posts.get_post(post_id)
+        if post is None:
+            return None
+        return {
+            "post": post,
+            "likes": self.like_count(post_id),
+            "liked": self.has_liked(post_id, viewer),
+            "comments": self.interactions.comments_for(post_id),
+            "comment_count": self.comment_count(post_id),
+        }
